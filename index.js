@@ -3,50 +3,71 @@
 const bodyParser = require('body-parser');
 const browserify = require('browserify-middleware');
 const express = require('express');
-const { readdirSync, statSync } = require('fs');
 const { join } = require('path');
 
-const { mount } = require('./lib/server/rest/connectionsapi');
 const WebRtcConnectionManager = require('./lib/server/connections/webrtcconnectionmanager');
 
 const app = express();
 
 app.use(bodyParser.json());
 
-const examplesDirectory = join(__dirname, 'examples');
+const path = join(__dirname);
 
-const examples = readdirSync(examplesDirectory).filter(path =>
-  statSync(join(examplesDirectory, path)).isDirectory());
+app.get('/', (req, res) => res.redirect(`index.html`));
 
-function setupExample(example) {
-  const path = join(examplesDirectory, example);
-  const clientPath = join(path, 'client.js');
-  const serverPath = join(path, 'server.js');
+const clientPath = join(path, 'client.js');
+const serverPath = join(path, 'server.js');
 
-  app.use(`/${example}/index.js`, browserify(clientPath));
-  app.get(`/${example}/index.html`, (req, res) => {
-    res.sendFile(join(__dirname, 'html', 'index.html'));
-  });
+app.use(`/index.js`, browserify(clientPath));
+app.get(`/index.html`, (req, res) => {
+  res.sendFile(join(__dirname, 'html', 'index.html'));
+});
 
-  const options = require(serverPath);
-  const connectionManager = WebRtcConnectionManager.create(options);
-  mount(app, connectionManager, `/${example}`);
+const options = require(serverPath);
+const connectionManager = WebRtcConnectionManager.create(options);
 
-  return connectionManager;
-}
+app.post(`/connections`, async (req, res) => {
+  try {
+    const connection = await connectionManager.createConnection();
+    res.send(connection);
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+});
 
-app.get('/', (req, res) => res.redirect(`${examples[0]}/index.html`));
+app.delete(`/connections/:id`, (req, res) => {
+  const { id } = req.params;
+  const connection = connectionManager.getConnection(id);
+  if (!connection) {
+    res.sendStatus(404);
+    return;
+  }
+  connection.close();
+  res.send(connection);
+});
 
-const connectionManagers = examples.reduce((connectionManagers, example) => {
-  const connectionManager = setupExample(example);
-  return connectionManagers.set(example, connectionManager);
-}, new Map());
+app.post(`/connections/:id/remote-description`, async (req, res) => {
+  const { id } = req.params;
+  const connection = connectionManager.getConnection(id);
+  if (!connection) {
+    res.sendStatus(404);
+    return;
+  }
+  try {
+    await connection.applyAnswer(req.body);
+    res.send(connection.toJSON().remoteDescription);
+  } catch (error) {
+    res.sendStatus(400);
+  }
+});
+
 
 const server = app.listen(3000, () => {
   const address = server.address();
   console.log(`http://localhost:${address.port}\n`);
 
   server.once('close', () => {
-    connectionManagers.forEach(connectionManager => connectionManager.close());
+    connectionManager => connectionManager.close();
   });
 });

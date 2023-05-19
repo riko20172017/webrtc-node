@@ -18,11 +18,9 @@
   "author": "Mark Andrus Roberts <markandrusroberts@gmail.com>",
   "license": "BSD-3-Clause",
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.0.20",
     "Scope": "github:kevincennis/Scope",
     "body-parser": "^1.18.3",
     "browserify-middleware": "^8.1.1",
-    "canvas": "^2.4.1",
     "color-space": "^1.16.0",
     "express": "^4.16.4",
     "fluent-ffmpeg": "^2.1.2",
