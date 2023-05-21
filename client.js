@@ -46,7 +46,7 @@ class ConnectionClient {
 
       const localPeerConnection = new RTCPeerConnection({
         sdpSemantics: 'unified-plan',
-        iceServers: [{urls: 'stun:stun.l.google.com:19302'}]
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       });
 
       // NOTE(mroberts): This is a hack so that we can get a callback when the
@@ -91,7 +91,8 @@ class ConnectionClient {
 
 function beforeAnswer(peerConnection) {
   let dataChannel = null;
-
+  let interval;
+  
   function onMessage({ data }) {
     if (data === 'pong') {
       console.log('received pong');

@@ -4,8 +4,8 @@ const bodyParser = require('body-parser');
 const browserify = require('browserify-middleware');
 const express = require('express');
 const { join } = require('path');
+const connectionManager = require('./lib/server/connections/connectionmanager');
 
-const WebRtcConnectionManager = require('./lib/server/connections/webrtcconnectionmanager');
 
 const app = express();
 
@@ -16,19 +16,17 @@ const path = join(__dirname);
 app.get('/', (req, res) => res.redirect(`index.html`));
 
 const clientPath = join(path, 'client.js');
-const serverPath = join(path, 'server.js');
 
 app.use(`/index.js`, browserify(clientPath));
 app.get(`/index.html`, (req, res) => {
   res.sendFile(join(__dirname, 'html', 'index.html'));
 });
 
-const options = require(serverPath);
-const connectionManager = WebRtcConnectionManager.create(options);
+const cm = new connectionManager();
 
 app.post(`/connections`, async (req, res) => {
   try {
-    const connection = await connectionManager.createConnection();
+    const connection = await cm.createConnection();
     res.send(connection);
   } catch (error) {
     console.error(error);
@@ -38,18 +36,18 @@ app.post(`/connections`, async (req, res) => {
 
 app.delete(`/connections/:id`, (req, res) => {
   const { id } = req.params;
-  const connection = connectionManager.getConnection(id);
+  const connection = cm.getConnection(id);
   if (!connection) {
     res.sendStatus(404);
     return;
   }
-  connection.close();
+  cm.deleteConnection(id);
   res.send(connection);
 });
 
 app.post(`/connections/:id/remote-description`, async (req, res) => {
   const { id } = req.params;
-  const connection = connectionManager.getConnection(id);
+  const connection = cm.getConnection(id);
   if (!connection) {
     res.sendStatus(404);
     return;
@@ -68,6 +66,6 @@ const server = app.listen(3000, () => {
   console.log(`http://localhost:${address.port}\n`);
 
   server.once('close', () => {
-    connectionManager => connectionManager.close();
+    cm => cm.close();
   });
 });
