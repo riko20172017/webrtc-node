@@ -1,16 +1,12 @@
 'use strict';
 
 const createStartStopButton = require('./lib/browser/startstopbutton');
-const fetch = require('node-fetch');
-const DefaultRTCPeerConnection = require('wrtc').RTCPeerConnection;
-const { RTCSessionDescription } = require('wrtc');
 
 const TIME_TO_HOST_CANDIDATES = 3000;  // NOTE(mroberts): Too long.
 
 class ConnectionClient {
   constructor(options = {}) {
     options = {
-      RTCPeerConnection: DefaultRTCPeerConnection,
       clearTimeout,
       host: '',
       prefix: '.',
@@ -20,8 +16,6 @@ class ConnectionClient {
     };
 
     const {
-      RTCPeerConnection,
-      prefix,
       host
     } = options;
 
